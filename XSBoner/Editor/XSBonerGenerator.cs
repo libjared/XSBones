@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using VRC.SDK3.Dynamics.PhysBone.Components;
 
 public class XSBonerGenerator : EditorWindow
 {
@@ -30,7 +31,7 @@ public class XSBonerGenerator : EditorWindow
             armatureObj, typeof(Animator), true);
         if (armatureObj != null)
         {
-            ani = (Animator) armatureObj;
+            ani = (Animator)armatureObj;
         }
         else
         {
@@ -72,14 +73,14 @@ public class XSBonerGenerator : EditorWindow
 
         smr = EditorGUILayout.ObjectField(new GUIContent("Skinned Mesh Renderer", "The main skinned mesh renderer"),
             smr, typeof(SkinnedMeshRenderer), true);
-        boneMaterial = (Material) EditorGUILayout.ObjectField(
+        boneMaterial = (Material)EditorGUILayout.ObjectField(
             new GUIContent("Bone Material", "The Material you want for your bones"), boneMaterial, typeof(Material),
             true);
 
         if (armatureObj && ani.isHuman)
         {
             if (haveIKLines)
-                ikMaterial = (Material) EditorGUILayout.ObjectField(
+                ikMaterial = (Material)EditorGUILayout.ObjectField(
                     new GUIContent("IK Material", "The Material you want for your IK Lines"), ikMaterial,
                     typeof(Material), true);
             haveIKLines = EditorGUILayout.Toggle("Have IK Lines", haveIKLines);
@@ -144,9 +145,9 @@ public class XSBonerGenerator : EditorWindow
 
             bone = AssetDatabase.LoadAssetAtPath(AssetDatabase.GetAssetPath(bone), typeof(Object));
             boneMaterial =
-                (Material) AssetDatabase.LoadAssetAtPath(AssetDatabase.GetAssetPath(boneMaterial), typeof(Material));
+                (Material)AssetDatabase.LoadAssetAtPath(AssetDatabase.GetAssetPath(boneMaterial), typeof(Material));
             ikMaterial =
-                (Material) AssetDatabase.LoadAssetAtPath(AssetDatabase.GetAssetPath(ikMaterial), typeof(Material));
+                (Material)AssetDatabase.LoadAssetAtPath(AssetDatabase.GetAssetPath(ikMaterial), typeof(Material));
 
             var name = Regex.Replace(ani.name, "[^a-zA-Z0-9_.]+", "", RegexOptions.Compiled);
             var bonename = Regex.Replace(bone.name, "[^a-zA-Z0-9_.]+", "", RegexOptions.Compiled);
@@ -158,7 +159,7 @@ public class XSBonerGenerator : EditorWindow
             coloUrs = new List<Color>();
 
             var boneIndex = 0;
-            foreach (var _bone in ((SkinnedMeshRenderer) smr).bones)
+            foreach (var _bone in ((SkinnedMeshRenderer)smr).bones)
                 if (_bone != null)
                 {
                     bones.Add(_bone);
@@ -166,7 +167,7 @@ public class XSBonerGenerator : EditorWindow
                     boneIndex++;
                 }
 
-            recursiveShit(startingBone != null ? (Transform) startingBone : ani.GetBoneTransform(HumanBodyBones.Hips),
+            recursiveShit(startingBone != null ? (Transform)startingBone : ani.GetBoneTransform(HumanBodyBones.Hips),
                 collectDynamicBones(ani.transform));
 
             //keep bindposes 
@@ -191,7 +192,7 @@ public class XSBonerGenerator : EditorWindow
             {
                 yourBones.AddComponent<AudioSource>();
                 var doot = yourBones.GetComponent<AudioSource>();
-                doot.clip = (AudioClip) AssetDatabase.LoadAssetAtPath(editorPath + "/Doot.mp3", typeof(AudioClip));
+                doot.clip = (AudioClip)AssetDatabase.LoadAssetAtPath(editorPath + "/Doot.mp3", typeof(AudioClip));
                 doot.spatialBlend = 1;
                 doot.dopplerLevel = 0;
                 doot.minDistance = 2;
@@ -241,7 +242,7 @@ public class XSBonerGenerator : EditorWindow
             yourSkinnedMeshRenderer.sharedMesh.bindposes = bindposes.ToArray();
             yourSkinnedMeshRenderer.sharedMesh.colors = coloUrs.ToArray();
             yourSkinnedMeshRenderer.sharedMaterials =
-                haveIKLines ? new[] {boneMaterial, ikMaterial} : new[] {boneMaterial};
+                haveIKLines ? new[] { boneMaterial, ikMaterial } : new[] { boneMaterial };
 
             yourSkinnedMeshRenderer.sharedMesh.RecalculateBounds();
 
@@ -261,7 +262,7 @@ public class XSBonerGenerator : EditorWindow
     [MenuItem("Xiexe/Tools/XSBonerGenerator")]
     private static void Init()
     {
-        var window = (XSBonerGenerator) GetWindow(typeof(XSBonerGenerator));
+        var window = (XSBonerGenerator)GetWindow(typeof(XSBonerGenerator));
         window.Show();
     }
 
@@ -274,8 +275,10 @@ public class XSBonerGenerator : EditorWindow
 
     private void collectDynamicBones(Transform transform, HashSet<Transform> results)
     {
-        foreach (var dynamicBone in transform.GetComponents<DynamicBone>())
-            collectDynamicBonesForOneScript(dynamicBone.m_Root, dynamicBone.m_Exclusions, results);
+        foreach (var dynamicBone in transform.GetComponents<VRCPhysBone>())
+        {
+            collectDynamicBonesForOneScript(dynamicBone.GetRootTransform(), dynamicBone.ignoreTransforms, results);
+        }
 
         for (var i = 0; i < transform.childCount; i++) collectDynamicBones(transform.GetChild(i), results);
     }
@@ -318,9 +321,9 @@ public class XSBonerGenerator : EditorWindow
             Quaternion.Euler(boneSpawn.transform.rotation.eulerAngles + new Vector3(90f, 0, 0));
         var isHumanoid = false;
 
-        for (var i = 0; i < (int) HumanBodyBones.LastBone; i++)
+        for (var i = 0; i < (int)HumanBodyBones.LastBone; i++)
         {
-            var bone = (HumanBodyBones) i;
+            var bone = (HumanBodyBones)i;
             if (ani.GetBoneTransform(bone) != null && ani.GetBoneTransform(bone).name == transform1.name)
             {
                 isHumanoid = true;
@@ -344,7 +347,7 @@ public class XSBonerGenerator : EditorWindow
 
             if (bonesByHash[bonename] != null)
             {
-                bWeight.boneIndex0 = (int) bonesByHash[bonename];
+                bWeight.boneIndex0 = (int)bonesByHash[bonename];
                 bWeight.weight0 = 1;
 
                 boneWeights.Add(bWeight);
@@ -377,11 +380,11 @@ public class XSBonerGenerator : EditorWindow
         if (lowerT == null) return;
 
         var _boneWeights = new BoneWeight[3];
-        _boneWeights[0].boneIndex0 = (int) bonesByHash[upperT.name];
+        _boneWeights[0].boneIndex0 = (int)bonesByHash[upperT.name];
         _boneWeights[0].weight0 = 1;
-        _boneWeights[1].boneIndex0 = (int) bonesByHash[lowerT.name];
+        _boneWeights[1].boneIndex0 = (int)bonesByHash[lowerT.name];
         _boneWeights[1].weight0 = 1;
-        _boneWeights[2].boneIndex0 = (int) bonesByHash[upperT.name];
+        _boneWeights[2].boneIndex0 = (int)bonesByHash[upperT.name];
         _boneWeights[2].weight0 = 1;
 
         boneWeights.Add(_boneWeights[0]);
